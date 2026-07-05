@@ -1,0 +1,18 @@
+:root {
+  --font-body: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --color-background: #f5f1e8;
+  --color-surface: #fffaf2;
+  --color-text: #1a1a14;
+  --color-muted: #6b695f;
+  --color-border: #d6ccb8;
+  --color-accent: #9b4d24;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --radius-md: 0.75rem;
+}
+

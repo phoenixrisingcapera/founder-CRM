@@ -1,0 +1,20 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.svelte-kit
+.svelte-kit/
+node_modules
+coverage
+playwright-report
+test-results
+dist
+build
+.cache/
+*.tsbuildinfo
+npm-debug.log*
+graphify-out/
+
+# Local docs and audit notes
+documentation/
+tests/

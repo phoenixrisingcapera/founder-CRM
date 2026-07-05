@@ -1,0 +1,37 @@
+:root {
+  --brand-blue: #00b7ff;
+  --brand-violet: #7c3aed;
+  --brand-magenta: #ff3ea5;
+  --brand-navy: #020617;
+
+  --brand-name: 'Deck AIStack';
+  --bp-mobile: 480px;
+  --bp-tablet: 768px;
+  --bp-laptop: 1024px;
+  --bp-desktop: 1280px;
+  --bp-wide: 1440px;
+
+  --page-max-width: 1280px;
+  --page-wide-width: 1440px;
+  --space-page-x: clamp(1rem, 3vw, 3rem);
+  --space-page-y: clamp(2rem, 5vw, 5rem);
+
+  --header-height: 72px;
+  --utility-bar-height: 36px;
+  --topbar-height: 64px;
+  --sidebar-width: 192px;
+  --right-panel-width: 360px;
+  --workspace-gap: 1rem;
+  --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --font-display: 'Soehne', 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  --font-body: 'IBM Plex Sans', 'Inter', 'Segoe UI', sans-serif;
+
+  --radius-card: 18px;
+  --radius-button: 12px;
+  --radius-xl: 28px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+  --radius-xs: 10px;
+}

@@ -1,0 +1,8 @@
+:root {
+  --brand-card-accent: var(--accent);
+  --brand-card-surface: var(--surface);
+  --brand-card-muted-surface: var(--surface-soft);
+  --brand-card-border: var(--line);
+  --brand-card-text: var(--ink);
+  --brand-card-text-muted: var(--muted);
+}

@@ -1,0 +1,3 @@
+backend redeploy trigger
+2026-06-23T16:55:00Z
+latest expected fixes: explicit smart deck processing trigger, upload saves before processing, retry rescue route, processing placeholder fallback

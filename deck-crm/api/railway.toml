@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+preDeployCommand = "python scripts/railway_predeploy_noop.py"
+startCommand = "python scripts/start_railway.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

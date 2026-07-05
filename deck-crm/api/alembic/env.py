@@ -1,0 +1,84 @@
+from __future__ import annotations
+
+import os
+from logging.config import fileConfig
+
+from alembic import context
+from sqlalchemy import engine_from_config, inspect, pool, text
+
+# Alembic only needs database settings. Force a migration-specific role before
+# importing app.core.config so Railway pre-deploy migrations are not blocked by
+# runtime-only checks such as AI provider, CORS, auth signing, or storage config.
+os.environ["APP_ROLE"] = "migration"
+
+from app.core.config import settings
+from app.db.base import Base
+from app.db import models as model_registry  # noqa: F401
+from app.db.models import interest_lead  # noqa: F401
+
+config = context.config
+config.set_main_option("sqlalchemy.url", settings.database_url)
+
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
+
+target_metadata = Base.metadata
+
+
+def widen_alembic_version_column(connection) -> None:
+    """Railway Postgres may already have Alembic's default VARCHAR(32) column."""
+    if connection.dialect.name != "postgresql":
+        return
+
+    inspector = inspect(connection)
+    if "alembic_version" not in inspector.get_table_names():
+        return
+
+    columns = {
+        column["name"]: column
+        for column in inspector.get_columns("alembic_version")
+    }
+    version_column = columns.get("version_num")
+    if version_column is None:
+        return
+
+    column_type = version_column["type"]
+    current_length = getattr(column_type, "length", None)
+    if current_length is None or current_length < 255:
+        connection.execute(
+            text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
+        )
+        connection.commit()
+
+
+def run_migrations_offline() -> None:
+    context.configure(
+        url=settings.database_url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+    )
+
+    with context.begin_transaction():
+        context.run_migrations()
+
+
+def run_migrations_online() -> None:
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
+        widen_alembic_version_column(connection)
+        context.configure(connection=connection, target_metadata=target_metadata)
+
+        with context.begin_transaction():
+            context.run_migrations()
+
+
+if context.is_offline_mode():
+    run_migrations_offline()
+else:
+    run_migrations_online()

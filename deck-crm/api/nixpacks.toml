@@ -1,0 +1,7 @@
+[phases.setup]
+aptPkgs = ["clamav", "libreoffice", "poppler-utils", "tesseract-ocr"]
+
+[phases.build]
+cmds = [
+  "python llm_knowledge/deck_archetype_knowledge/scripts/compile_deck_archetypes.py --src llm_knowledge/deck_archetype_knowledge/source_md --out llm_knowledge/deck_archetype_knowledge/compiled_json"
+]

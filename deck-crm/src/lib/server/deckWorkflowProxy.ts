@@ -1,0 +1,70 @@
+import { error, type Cookies } from '@sveltejs/kit';
+import { deckSmartDeckReadinessApiPath, deckWorkflowJobApiPath, deckWorkflowStateApiPath } from '$lib/contracts';
+import { requireBackendAuthHeaders } from '$server/backendAuth';
+import { extractErrorMessage, requireBackendUrl } from '$server/backendApi';
+
+export async function fetchBackendJsonOrThrow(
+  fetcher: typeof fetch,
+  cookies: Cookies,
+  path: string,
+  fallbackMessage: string,
+  init: RequestInit = {}
+) {
+  const backendUrl = requireBackendUrl();
+  const headers = new Headers(init.headers);
+  for (const [key, value] of Object.entries(requireBackendAuthHeaders(cookies))) {
+    headers.set(key, String(value));
+  }
+
+  const response = await fetcher(`${backendUrl}${path}`, {
+    ...init,
+    headers
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const err = new Error(extractErrorMessage(payload, fallbackMessage)) as Error & {
+      backendStatus?: number;
+      backendStatusText?: string;
+      backendPath?: string;
+      backendPayload?: Record<string, unknown> | null;
+    };
+    err.backendStatus = response.status;
+    err.backendStatusText = response.statusText;
+    err.backendPath = path;
+    err.backendPayload = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+    throw error(response.status, Object.assign(err, {
+      backendStatus: response.status,
+      backendStatusText: response.statusText,
+      backendPath: path,
+      backendPayload: payload
+    }));
+  }
+  return payload;
+}
+
+export async function fetchWorkflowState(fetcher: typeof fetch, cookies: Cookies, deckId: string) {
+  return fetchBackendJsonOrThrow(
+    fetcher,
+    cookies,
+    deckWorkflowStateApiPath(deckId),
+    'Could not load deck workflow state.'
+  );
+}
+
+export async function fetchSmartDeckReadiness(fetcher: typeof fetch, cookies: Cookies, deckId: string) {
+  return fetchBackendJsonOrThrow(
+    fetcher,
+    cookies,
+    deckSmartDeckReadinessApiPath(deckId),
+    'Could not load Smart Deck readiness.'
+  );
+}
+
+export async function fetchWorkflowJob(fetcher: typeof fetch, cookies: Cookies, jobId: string) {
+  return fetchBackendJsonOrThrow(
+    fetcher,
+    cookies,
+    deckWorkflowJobApiPath(jobId),
+    'Could not load workflow job status.'
+  );
+}

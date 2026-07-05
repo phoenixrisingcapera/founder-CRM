@@ -1,0 +1,298 @@
+{
+  "id": "vc_fund_pitch.lp-terms.v1",
+  "slug": "lp-terms",
+  "title": "LP Terms",
+  "description": "The economic and structural terms of the LP commitment — management fee, carry, hurdle, GP commit, fund life.",
+  "deck_types": [
+    "vc_fund_pitch"
+  ],
+  "deck_families": [
+    "vc_fund_pitch"
+  ],
+  "tags": [
+    "VC-Pitch-Narratives"
+  ],
+  "slug_variants": [
+    "terms",
+    "fund-terms",
+    "lp-economics",
+    "fees-and-carry",
+    "fund-structure",
+    "economics"
+  ],
+  "dates": {
+    "created": "2026-06-09",
+    "updated": "2026-06-09"
+  },
+  "sequence": {
+    "often_before_slides": [
+      "pipeline",
+      "extended-team",
+      "core-team"
+    ],
+    "often_after_slides": []
+  },
+  "body_md": "Typically the closing slide of an LP deck. The terms slide is read against market — out-of-band terms need a paragraph of justification, not a footnote.",
+  "narrative_role": {
+    "primary_job": "The economic and structural terms of the LP commitment — management fee, carry, hurdle, GP commit, fund life.",
+    "emotional_effect": "The audience should understand why this slide matters now.",
+    "business_effect": "The audience should connect the slide claim to investor, LP, buyer, or operator decision-making.",
+    "comes_before": [],
+    "comes_after": [
+      "pipeline",
+      "extended-team",
+      "core-team"
+    ]
+  },
+  "use_when": [
+    "The deck needs a lp terms slide to advance the narrative.",
+    "The active deck context contains enough source facts to support this slide job."
+  ],
+  "do_not_use_when": [
+    "The slide would duplicate the previous slide's narrative job.",
+    "Required evidence is absent and the user asked for a factual proof slide."
+  ],
+  "required_inputs": [
+    {
+      "field": "deck_specific_facts",
+      "description": "Facts from the active deck, uploaded files, or user instruction.",
+      "required": true
+    },
+    {
+      "field": "proof_source",
+      "description": "Evidence supporting the slide claim.",
+      "required": true
+    },
+    {
+      "field": "audience_context",
+      "description": "The reader and decision the slide must influence.",
+      "required": true
+    }
+  ],
+  "optional_inputs": [
+    "customer quote",
+    "market source",
+    "metric",
+    "visual asset",
+    "speaker note"
+  ],
+  "evidence_hierarchy": [
+    {
+      "level": 1,
+      "name": "Strong evidence",
+      "examples": [
+        "customer data",
+        "usage data",
+        "revenue data",
+        "signed commitments",
+        "named source facts",
+        "verified regulatory or legal source"
+      ]
+    },
+    {
+      "level": 2,
+      "name": "Moderate evidence",
+      "examples": [
+        "industry benchmark",
+        "survey",
+        "public research",
+        "customer quote",
+        "pipeline stage"
+      ]
+    },
+    {
+      "level": 3,
+      "name": "Weak evidence",
+      "examples": [
+        "generic market trend",
+        "founder opinion",
+        "unsourced projection",
+        "unverified claim"
+      ]
+    }
+  ],
+  "generation_rules": {
+    "headline": {
+      "goal": "State one specific, evidence-led claim.",
+      "avoid": [
+        "generic slide labels",
+        "unsupported superlatives",
+        "raw feature lists without audience relevance"
+      ]
+    },
+    "body": {
+      "recommended_structure": [
+        "claim",
+        "source-backed support",
+        "audience implication",
+        "missing input note when needed"
+      ],
+      "max_bullets": 4
+    },
+    "speaker_notes": {
+      "goal": "Explain the slide's argument and caveats without inventing facts."
+    }
+  },
+  "critique_rules": [
+    {
+      "rule": "source_fact_required",
+      "description": "Flag unsupported claims, metrics, named customers, investors, regulatory claims, returns, or projections.",
+      "severity": "high"
+    },
+    {
+      "rule": "single_narrative_job",
+      "description": "Flag the slide when it tries to do too many unrelated jobs.",
+      "severity": "medium"
+    },
+    {
+      "rule": "render_schema_validity",
+      "description": "Flag output that cannot be rendered by the Svelte Smart Deck renderer.",
+      "severity": "high"
+    }
+  ],
+  "rewrite_modes": {
+    "clearer": {
+      "instruction": "Remove vague language and make the claim more specific without changing facts."
+    },
+    "more_investor_grade": {
+      "instruction": "Tie the point to investor decision criteria, urgency, evidence, and risk without exaggeration."
+    },
+    "shorter": {
+      "instruction": "Reduce to one claim headline and no more than three concise proof points."
+    },
+    "more_visual": {
+      "instruction": "Translate the idea into a renderable visual pattern such as before/after, metric row, workflow, matrix, or evidence cards."
+    }
+  },
+  "visual_guidance": [
+    {
+      "type": "claim_with_evidence",
+      "best_when": "The slide needs one argument and a few proof points.",
+      "description": "Use a dominant headline with evidence cards or a metric row."
+    },
+    {
+      "type": "two_column_before_after",
+      "best_when": "The slide compares current state with unlocked future state.",
+      "description": "Use two clear columns and a bridge label that explains the change."
+    }
+  ],
+  "llm_contract": {
+    "narrative_function": "The economic and structural terms of the LP commitment — management fee, carry, hurdle, GP commit, fund life. Typically the closing slide of an LP deck. The terms slide is read against market — out-of-band terms need a paragraph of justification, not a footnote.",
+    "required_inputs": [
+      {
+        "field": "deck_specific_facts",
+        "description": "Facts from the active deck, uploaded files, or user instruction.",
+        "required": true
+      },
+      {
+        "field": "proof_source",
+        "description": "Evidence supporting the slide claim.",
+        "required": true
+      },
+      {
+        "field": "audience_context",
+        "description": "The reader and decision the slide must influence.",
+        "required": true
+      }
+    ],
+    "quality_criteria": [
+      "specific",
+      "evidence-led",
+      "fits the surrounding deck sequence",
+      "valid render_schema_json"
+    ],
+    "common_mistakes": [
+      "vague claims",
+      "unsupported facts",
+      "decorative slide with no narrative job",
+      "raw Svelte, Tailwind classes, or CSS in model output"
+    ],
+    "output_expectation": {
+      "slide_goal": "One clear investor-facing job for this slide.",
+      "headline": "Short, specific, evidence-led headline.",
+      "supporting_points": "3-5 proof points or claims, each grounded in provided company/fund context.",
+      "visual_suggestion": "A suitable render_schema_json layout pattern.",
+      "missing_inputs": "Questions or placeholders when required context is absent."
+    }
+  },
+  "render_contract": {
+    "schema_version": "smart-deck-render-schema.v1",
+    "renderer": "GeneratedSlideRenderer.svelte",
+    "output_mode": "render_schema_json",
+    "forbidden_output": [
+      "raw Svelte code",
+      "Tailwind utility classes",
+      "HTML fragments",
+      "unverified external images"
+    ],
+    "default_layout_patterns": [
+      "claim_with_evidence",
+      "two_column_before_after",
+      "metric_with_context",
+      "matrix_or_map"
+    ],
+    "safe_bounds": {
+      "canvas_width": 1920,
+      "canvas_height": 1080,
+      "safe_margin_px": 72
+    }
+  },
+  "quality_rubric": {
+    "excellent": [
+      "The slide has one clear narrative job.",
+      "The headline is a defensible claim grounded in supplied context.",
+      "The layout makes the main point visible before details.",
+      "The render schema is valid and bounded.",
+      "Missing evidence is surfaced honestly."
+    ],
+    "weak": [
+      "The slide is a generic template with no project-specific judgment.",
+      "The headline is only a label.",
+      "The layout has too many competing groups.",
+      "The output invents metrics or customer proof."
+    ]
+  },
+  "output_contract": {
+    "required_semantic_fields": [
+      "archetype",
+      "headline",
+      "subheadline",
+      "supporting_points",
+      "visual_suggestion",
+      "speaker_notes",
+      "missing_inputs",
+      "quality_warnings",
+      "source_facts_used",
+      "assumptions",
+      "confidence"
+    ],
+    "render_schema_mapping": {
+      "headline": "primary text element",
+      "supporting_points": "secondary text elements or evidence cards",
+      "visual_suggestion": "renderSchema element layout",
+      "missing_inputs": "renderSchema.analytics.missingInputs",
+      "quality_warnings": "renderSchema.analytics.qualityWarnings",
+      "source_facts_used": "renderSchema.analytics.sourceFactsUsed",
+      "assumptions": "renderSchema.analytics.assumptions",
+      "confidence": "renderSchema.analytics.confidence"
+    }
+  },
+  "validation_rules": [
+    "Render schema must pass backend Pydantic validation.",
+    "Do not emit raw Svelte, HTML, Tailwind, CSS, JavaScript, or base64 assets.",
+    "All factual claims must be supported by source facts or listed as assumptions.",
+    "If required evidence is absent, populate missing_inputs instead of inventing details."
+  ],
+  "frontend_render_hints": {
+    "renderer": "GeneratedSlideRenderer.svelte",
+    "editable_fields": [
+      "headline",
+      "subheadline",
+      "supporting_points",
+      "speaker_notes"
+    ],
+    "show_missing_inputs_panel": true,
+    "show_quality_warnings": true,
+    "show_source_facts": true
+  }
+}
