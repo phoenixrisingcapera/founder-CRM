@@ -56,3 +56,4 @@ PUBLIC_ENABLE_DEMO_BOOTSTRAP=false
 - `web/` uses `@sveltejs/adapter-node` for Railway.
 - `api/` runs Alembic migrations on boot before starting Uvicorn.
 - Create a Railway Postgres service and connect its URL to `CRM_DATABASE_URL`.
+- Public logo is available from the web service at `/logo.png`.

@@ -1,4 +1,5 @@
 import type {
+    AiArtifactRecord,
     ActionRecord,
     AdminFailureTickets,
     AdminOverview,
@@ -18,12 +19,13 @@ import type {
   FollowUpTaskRecord,
   InteractionNoteRecord,
   InvestorRecord,
-  OpportunityRecord,
-  PersonRecord,
+    OpportunityRecord,
+    PersonRecord,
   PipelineDealRecord,
   ProjectRecord,
-  RelationshipGraphRecord,
-  RelationshipScoreRecord,
+    RelationshipGraphRecord,
+    GoalScoreRecord,
+    RelationshipScoreRecord,
   SessionResponse,
   SettingsSummary,
   WarmPathRecord,
@@ -125,6 +127,25 @@ export const getActionQueue = (goalType = 'raise_funding') =>
   request<ActionRecord[]>(`/action-queue?goal_type=${encodeURIComponent(goalType)}`);
 export const getRelationshipFit = (goalType: string) => request<RelationshipScoreRecord[]>(`/relationship-fit?goal_type=${encodeURIComponent(goalType)}`);
 export const getRelationshipGraph = () => request<RelationshipGraphRecord>('/relationship-graph');
+export const listGoalScores = () => request<GoalScoreRecord[]>('/goal-scores');
+export const createGoalScore = (payload: { project_id: string; person_id?: string; company_id?: string; opportunity_id?: string }) =>
+  request<GoalScoreRecord>('/goal-scores', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+export const listAiArtifacts = () => request<AiArtifactRecord[]>('/ai-artifacts');
+export const getAiArtifact = (artifactId: string) => request<AiArtifactRecord>(`/ai-artifacts/${artifactId}`);
+export const generateAiArtifact = (payload: {
+  goal_score_id: string;
+  project_id: string;
+  person_id?: string;
+  company_id?: string;
+  opportunity_id?: string;
+  instruction?: string;
+  api_key?: string;
+  provider?: string;
+}) => request<AiArtifactRecord>('/ai-artifacts/generate', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+});
 export const listNotes = () => request<InteractionNoteRecord[]>('/notes');
 export const listTasks = () => request<FollowUpTaskRecord[]>('/tasks');
 export const getSettings = () => request<SettingsSummary>('/settings');

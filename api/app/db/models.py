@@ -221,6 +221,44 @@ class IntroPath(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class GoalScore(Base):
+    __tablename__ = "goal_scores"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("founder_workspaces.id"))
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"))
+    person_id: Mapped[str | None] = mapped_column(ForeignKey("people.id"), nullable=True)
+    company_id: Mapped[str | None] = mapped_column(ForeignKey("companies.id"), nullable=True)
+    opportunity_id: Mapped[str | None] = mapped_column(ForeignKey("opportunities.id"), nullable=True)
+    total_score: Mapped[int] = mapped_column(Integer)
+    relationship_strength_score: Mapped[int] = mapped_column(Integer)
+    warm_path_score: Mapped[int] = mapped_column(Integer)
+    sector_fit_score: Mapped[int] = mapped_column(Integer)
+    stage_fit_score: Mapped[int] = mapped_column(Integer)
+    recency_score: Mapped[int] = mapped_column(Integer)
+    confidence_score: Mapped[int] = mapped_column(Integer)
+    reasons_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    missing_data_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    recommended_next_action: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AiArtifact(Base):
+    __tablename__ = "ai_artifacts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_id)
+    workspace_id: Mapped[str] = mapped_column(ForeignKey("founder_workspaces.id"))
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id"))
+    person_id: Mapped[str | None] = mapped_column(ForeignKey("people.id"), nullable=True)
+    company_id: Mapped[str | None] = mapped_column(ForeignKey("companies.id"), nullable=True)
+    opportunity_id: Mapped[str | None] = mapped_column(ForeignKey("opportunities.id"), nullable=True)
+    goal_score_id: Mapped[str | None] = mapped_column(ForeignKey("goal_scores.id"), nullable=True)
+    artifact_type: Mapped[str] = mapped_column(String(80), default="venture_brief")
+    title: Mapped[str] = mapped_column(String(255))
+    content_markdown: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Deck(Base):
     __tablename__ = "decks"
 

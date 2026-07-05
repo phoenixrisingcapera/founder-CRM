@@ -26,6 +26,10 @@ export interface DashboardSummary {
   suggested_actions: ActionRecord[];
   deck_readiness_score: number;
   feature_flags: { exports_enabled: boolean };
+  latest_goal_score?: number | null;
+  latest_goal_score_label?: string | null;
+  latest_ai_artifact_id?: string | null;
+  latest_ai_artifact_title?: string | null;
 }
 
 export interface PersonRecord {
@@ -212,6 +216,46 @@ export interface RelationshipScoreRecord {
   proximity_score: number;
   total_score: number;
   reasons: string[];
+}
+
+export interface GoalScoreRecord {
+  id: string;
+  project_id: string;
+  person_id?: string | null;
+  company_id?: string | null;
+  opportunity_id?: string | null;
+  project_title?: string | null;
+  person_name?: string | null;
+  company_name?: string | null;
+  opportunity_title?: string | null;
+  total_score: number;
+  relationship_strength_score: number;
+  warm_path_score: number;
+  sector_fit_score: number;
+  stage_fit_score: number;
+  recency_score: number;
+  confidence_score: number;
+  reasons: string[];
+  missing_data: string[];
+  recommended_next_action: string;
+  created_at?: string | null;
+}
+
+export interface AiArtifactRecord {
+  id: string;
+  project_id: string;
+  person_id?: string | null;
+  company_id?: string | null;
+  opportunity_id?: string | null;
+  goal_score_id?: string | null;
+  artifact_type: string;
+  title: string;
+  content_markdown: string;
+  project_title?: string | null;
+  person_name?: string | null;
+  company_name?: string | null;
+  opportunity_title?: string | null;
+  created_at?: string | null;
 }
 
 export interface RelationshipGraphNode {

@@ -1,15 +1,21 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_workspace, get_db
-from app.db.models import Company, Contact, Dispatch, FounderWorkspace, IntroPath, Investor, Opportunity, Person, Project, RelationshipEdge
+from app.db.models import AiArtifact, Company, Contact, Dispatch, FounderWorkspace, GoalScore, IntroPath, Investor, Opportunity, Person, Project, RelationshipEdge
 from app.schemas.crm import DeleteResponse
 from app.schemas.venture import (
     ActionRecord,
+    AiArtifactCreate,
+    AiArtifactResponse,
     CompanyCreate,
     CompanyResponse,
     DispatchCreate,
     DispatchResponse,
+    GoalScoreCreate,
+    GoalScoreResponse,
     IntroPathCreate,
     IntroPathResponse,
     OpportunityCreate,
@@ -25,8 +31,151 @@ from app.schemas.venture import (
     RelationshipScoreRecord,
     WarmPathRecord,
 )
+from app.services.ai import generate_venture_artifact
 
 router = APIRouter(tags=["venture"])
+
+
+def _score_goal(db: Session, workspace_id: str, project: Project, person: Person | None, company: Company | None, opportunity: Opportunity | None) -> dict:
+    relationship_strength = 35
+    warm_path = 20
+    sector_fit = 30
+    stage_fit = 35
+    recency = 35
+    confidence = 30
+    reasons: list[str] = []
+    missing: list[str] = []
+
+    if person:
+        if person.relationship_status == "active":
+            relationship_strength = 90
+            reasons.append("Active relationship already exists")
+        elif person.relationship_status == "warm":
+            relationship_strength = 75
+            reasons.append("Warm relationship exists")
+        else:
+            relationship_strength = 45
+            missing.append("Relationship is still new")
+        if person.last_contact_at:
+            from datetime import datetime, timezone
+            days = (datetime.now(timezone.utc) - person.last_contact_at).days
+            recency = 90 if days <= 14 else 70 if days <= 30 else 45
+            reasons.append(f"Last contact was {days} days ago")
+        else:
+            missing.append("No last contact date recorded")
+    else:
+        missing.append("No person linked")
+
+    if person:
+        intro_count = db.query(IntroPath).filter(IntroPath.workspace_id == workspace_id, IntroPath.to_person_id == person.id).count()
+        warm_path = min(100, 30 + intro_count * 25)
+        if intro_count:
+            reasons.append(f"{intro_count} warm intro path(s) available")
+        else:
+            missing.append("No intro path recorded")
+
+    if company and company.sector:
+        context = " ".join(filter(None, [project.summary, opportunity.notes if opportunity else None, opportunity.title if opportunity else None])).lower()
+        if company.sector.lower() in context:
+            sector_fit = 90
+            reasons.append("Company sector matches the active goal context")
+        else:
+            sector_fit = 60
+            reasons.append("Company sector is known but not explicitly matched in the goal")
+    else:
+        missing.append("Company sector missing")
+
+    if opportunity:
+        if project.goal_type == "raise_funding" and opportunity.opportunity_type == "funding":
+            stage_fit = 90
+            reasons.append("Opportunity type matches the active venture goal")
+        elif project.goal_type != "raise_funding" and opportunity.opportunity_type != "funding":
+            stage_fit = 75
+            reasons.append("Opportunity broadly matches the venture goal")
+        else:
+            stage_fit = 45
+            missing.append("Opportunity type is not aligned with the active goal")
+    else:
+        missing.append("No opportunity linked")
+
+    linked_objects = sum(1 for item in [person, company, opportunity] if item is not None)
+    confidence = 40 + linked_objects * 15 + min(len(reasons) * 3, 15)
+    if linked_objects < 3:
+        missing.append("Link more records to improve score confidence")
+
+    total = round((relationship_strength + warm_path + sector_fit + stage_fit + recency + min(confidence, 100)) / 6)
+    recommended = "Generate founder brief and prepare next outreach"
+    if warm_path >= 70:
+        recommended = "Request a warm intro through the strongest path"
+    elif relationship_strength < 60:
+        recommended = "Strengthen the relationship before a direct ask"
+    elif stage_fit < 60:
+        recommended = "Refine the opportunity or align it to the active goal"
+
+    return {
+        "total_score": total,
+        "relationship_strength_score": relationship_strength,
+        "warm_path_score": warm_path,
+        "sector_fit_score": sector_fit,
+        "stage_fit_score": stage_fit,
+        "recency_score": recency,
+        "confidence_score": min(confidence, 100),
+        "reasons": reasons or ["Base venture record created"],
+        "missing_data": list(dict.fromkeys(missing)),
+        "recommended_next_action": recommended,
+    }
+
+
+def _serialize_goal_score(row: GoalScore, db: Session) -> GoalScoreResponse:
+    project = db.query(Project).filter(Project.id == row.project_id).first()
+    person = db.query(Person).filter(Person.id == row.person_id).first() if row.person_id else None
+    company = db.query(Company).filter(Company.id == row.company_id).first() if row.company_id else None
+    opportunity = db.query(Opportunity).filter(Opportunity.id == row.opportunity_id).first() if row.opportunity_id else None
+    return GoalScoreResponse(
+        id=row.id,
+        project_id=row.project_id,
+        person_id=row.person_id,
+        company_id=row.company_id,
+        opportunity_id=row.opportunity_id,
+        project_title=project.title if project else None,
+        person_name=person.name if person else None,
+        company_name=company.name if company else None,
+        opportunity_title=opportunity.title if opportunity else None,
+        total_score=row.total_score,
+        relationship_strength_score=row.relationship_strength_score,
+        warm_path_score=row.warm_path_score,
+        sector_fit_score=row.sector_fit_score,
+        stage_fit_score=row.stage_fit_score,
+        recency_score=row.recency_score,
+        confidence_score=row.confidence_score,
+        reasons=json.loads(row.reasons_json or "[]"),
+        missing_data=json.loads(row.missing_data_json or "[]"),
+        recommended_next_action=row.recommended_next_action,
+        created_at=row.created_at.isoformat() if row.created_at else None,
+    )
+
+
+def _serialize_ai_artifact(row: AiArtifact, db: Session) -> AiArtifactResponse:
+    project = db.query(Project).filter(Project.id == row.project_id).first()
+    person = db.query(Person).filter(Person.id == row.person_id).first() if row.person_id else None
+    company = db.query(Company).filter(Company.id == row.company_id).first() if row.company_id else None
+    opportunity = db.query(Opportunity).filter(Opportunity.id == row.opportunity_id).first() if row.opportunity_id else None
+    return AiArtifactResponse(
+        id=row.id,
+        project_id=row.project_id,
+        person_id=row.person_id,
+        company_id=row.company_id,
+        opportunity_id=row.opportunity_id,
+        goal_score_id=row.goal_score_id,
+        artifact_type=row.artifact_type,
+        title=row.title,
+        content_markdown=row.content_markdown,
+        project_title=project.title if project else None,
+        person_name=person.name if person else None,
+        company_name=company.name if company else None,
+        opportunity_title=opportunity.title if opportunity else None,
+        created_at=row.created_at.isoformat() if row.created_at else None,
+    )
 
 
 @router.get("/people", response_model=list[PersonRecord])
@@ -469,3 +618,99 @@ def get_relationship_graph(workspace=Depends(get_current_workspace), db: Session
         if path.to_person_id:
             edges.append(RelationshipGraphEdge(source=path.from_person_id, target=path.to_person_id, label="intro_path"))
     return RelationshipGraphResponse(nodes=nodes, edges=edges)
+
+
+@router.get("/goal-scores", response_model=list[GoalScoreResponse])
+def list_goal_scores(workspace=Depends(get_current_workspace), db: Session = Depends(get_db)) -> list[GoalScoreResponse]:
+    rows = db.query(GoalScore).filter(GoalScore.workspace_id == workspace.id).order_by(GoalScore.created_at.desc()).all()
+    return [_serialize_goal_score(row, db) for row in rows]
+
+
+@router.post("/goal-scores", response_model=GoalScoreResponse)
+def create_goal_score(payload: GoalScoreCreate, workspace=Depends(get_current_workspace), db: Session = Depends(get_db)) -> GoalScoreResponse:
+    project = db.query(Project).filter(Project.id == payload.project_id, Project.workspace_id == workspace.id).one_or_none()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Venture goal not found")
+    person = db.query(Person).filter(Person.id == payload.person_id, Person.workspace_id == workspace.id).one_or_none() if payload.person_id else None
+    company = db.query(Company).filter(Company.id == payload.company_id, Company.workspace_id == workspace.id).one_or_none() if payload.company_id else None
+    opportunity = db.query(Opportunity).filter(Opportunity.id == payload.opportunity_id, Opportunity.workspace_id == workspace.id).one_or_none() if payload.opportunity_id else None
+    score = _score_goal(db, workspace.id, project, person, company, opportunity)
+    row = GoalScore(
+        workspace_id=workspace.id,
+        project_id=project.id,
+        person_id=person.id if person else None,
+        company_id=company.id if company else None,
+        opportunity_id=opportunity.id if opportunity else None,
+        total_score=score["total_score"],
+        relationship_strength_score=score["relationship_strength_score"],
+        warm_path_score=score["warm_path_score"],
+        sector_fit_score=score["sector_fit_score"],
+        stage_fit_score=score["stage_fit_score"],
+        recency_score=score["recency_score"],
+        confidence_score=score["confidence_score"],
+        reasons_json=json.dumps(score["reasons"]),
+        missing_data_json=json.dumps(score["missing_data"]),
+        recommended_next_action=score["recommended_next_action"],
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _serialize_goal_score(row, db)
+
+
+@router.get("/ai-artifacts", response_model=list[AiArtifactResponse])
+def list_ai_artifacts(workspace=Depends(get_current_workspace), db: Session = Depends(get_db)) -> list[AiArtifactResponse]:
+    rows = db.query(AiArtifact).filter(AiArtifact.workspace_id == workspace.id).order_by(AiArtifact.created_at.desc()).all()
+    return [_serialize_ai_artifact(row, db) for row in rows]
+
+
+@router.get("/ai-artifacts/{artifact_id}", response_model=AiArtifactResponse)
+def get_ai_artifact(artifact_id: str, workspace=Depends(get_current_workspace), db: Session = Depends(get_db)) -> AiArtifactResponse:
+    row = db.query(AiArtifact).filter(AiArtifact.id == artifact_id, AiArtifact.workspace_id == workspace.id).one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="AI artifact not found")
+    return _serialize_ai_artifact(row, db)
+
+
+@router.post("/ai-artifacts/generate", response_model=AiArtifactResponse)
+async def generate_ai_artifact(payload: AiArtifactCreate, workspace=Depends(get_current_workspace), db: Session = Depends(get_db)) -> AiArtifactResponse:
+    score = db.query(GoalScore).filter(GoalScore.id == payload.goal_score_id, GoalScore.workspace_id == workspace.id).one_or_none()
+    if score is None:
+        raise HTTPException(status_code=404, detail="Goal score not found")
+    project = db.query(Project).filter(Project.id == payload.project_id, Project.workspace_id == workspace.id).one_or_none()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Venture goal not found")
+    person = db.query(Person).filter(Person.id == payload.person_id, Person.workspace_id == workspace.id).one_or_none() if payload.person_id else None
+    company = db.query(Company).filter(Company.id == payload.company_id, Company.workspace_id == workspace.id).one_or_none() if payload.company_id else None
+    opportunity = db.query(Opportunity).filter(Opportunity.id == payload.opportunity_id, Opportunity.workspace_id == workspace.id).one_or_none() if payload.opportunity_id else None
+    score_summary = (
+        f"Score {score.total_score}/100. "
+        f"Reasons: {', '.join(json.loads(score.reasons_json or '[]'))}. "
+        f"Missing data: {', '.join(json.loads(score.missing_data_json or '[]'))}. "
+        f"Next action: {score.recommended_next_action}."
+    )
+    _, _, markdown = await generate_venture_artifact(
+        goal_title=project.title,
+        company_name=company.name if company else None,
+        person_name=person.name if person else None,
+        opportunity_title=opportunity.title if opportunity else None,
+        score_summary=score_summary,
+        instruction=payload.instruction,
+        api_key=payload.api_key,
+        provider=payload.provider,
+    )
+    row = AiArtifact(
+        workspace_id=workspace.id,
+        project_id=project.id,
+        person_id=person.id if person else None,
+        company_id=company.id if company else None,
+        opportunity_id=opportunity.id if opportunity else None,
+        goal_score_id=score.id,
+        artifact_type="venture_brief",
+        title=f"{project.title} brief",
+        content_markdown=markdown,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _serialize_ai_artifact(row, db)

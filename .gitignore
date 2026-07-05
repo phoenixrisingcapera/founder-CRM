@@ -14,7 +14,10 @@ api/.venv/
 api/storage/
 api/*.db
 api/*.sqlite3
+api/**/__pycache__/
 deck-crm/node_modules/
 deck-crm/.svelte-kit/
 deck-admin-crm/.pytest_cache/
 deck-admin-crm/__pycache__/
+*.pyc
+.Rhistory

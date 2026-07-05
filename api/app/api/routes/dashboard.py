@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_workspace, get_db
 from app.core.config import settings
-from app.db.models import Company, Contact, Deck, Dispatch, FollowUpTask, IntroPath, Investor, Opportunity, Person, Project
+from app.db.models import AiArtifact, Company, Contact, Deck, Dispatch, FollowUpTask, GoalScore, IntroPath, Investor, Opportunity, Person, Project
 from app.schemas.crm import DashboardMetric, DashboardSummary
 from app.schemas.venture import ActionRecord
 
@@ -24,6 +24,7 @@ def get_dashboard(
     company_count = db.query(Company).filter(Company.workspace_id == workspace.id).count()
     dispatch_count = db.query(Dispatch).filter(Dispatch.workspace_id == workspace.id).count()
     opportunity_count = db.query(Opportunity).filter(Opportunity.workspace_id == workspace.id).count()
+    artifact_count = db.query(AiArtifact).filter(AiArtifact.workspace_id == workspace.id).count()
     readiness = min(100, 35 + deck_count * 20 + people_count * 5)
 
     active_project_id = workspace.active_project_id
@@ -84,6 +85,8 @@ def get_dashboard(
                 intro_paths_available=intro_count,
             ))
     suggested.sort(key=lambda r: r.total_score, reverse=True)
+    latest_score = db.query(GoalScore).filter(GoalScore.workspace_id == workspace.id).order_by(GoalScore.created_at.desc()).first()
+    latest_artifact = db.query(AiArtifact).filter(AiArtifact.workspace_id == workspace.id).order_by(AiArtifact.created_at.desc()).first()
 
     return DashboardSummary(
         workspace_name=workspace.name,
@@ -97,10 +100,15 @@ def get_dashboard(
             DashboardMetric(label="Projects", value=project_count, tone="accent"),
             DashboardMetric(label="Dispatches", value=dispatch_count, tone="accent"),
             DashboardMetric(label="Deals & Opportunities", value=opportunity_count, tone="warn"),
+            DashboardMetric(label="AI Artifacts", value=artifact_count, tone="accent"),
             DashboardMetric(label="Follow-ups", value=follow_up_count, tone="warn"),
         ],
         upcoming_follow_ups=[],
         suggested_actions=suggested[:5],
         deck_readiness_score=readiness,
         feature_flags={"exports_enabled": settings.exports_enabled},
+        latest_goal_score=latest_score.total_score if latest_score else None,
+        latest_goal_score_label=latest_score.recommended_next_action if latest_score else None,
+        latest_ai_artifact_id=latest_artifact.id if latest_artifact else None,
+        latest_ai_artifact_title=latest_artifact.title if latest_artifact else None,
     )

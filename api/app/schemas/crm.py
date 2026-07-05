@@ -21,6 +21,10 @@ class DashboardSummary(BaseModel):
     suggested_actions: list[ActionRecord] = []
     deck_readiness_score: int
     feature_flags: dict[str, bool]
+    latest_goal_score: int | None = None
+    latest_goal_score_label: str | None = None
+    latest_ai_artifact_id: str | None = None
+    latest_ai_artifact_title: str | None = None
 
 
 class PersonCreate(BaseModel):

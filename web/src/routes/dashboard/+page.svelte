@@ -96,6 +96,26 @@
         </SectionCard>
       {/if}
 
+      {#if summary.latest_goal_score || summary.latest_ai_artifact_id}
+        <SectionCard title="Latest Founder Output" subtitle="The newest score and saved brief from your venture workflow.">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(16rem,1fr)); gap:1rem;">
+            <div class="panel">
+              <div class="eyebrow">Latest Score</div>
+              <div style="font-size:2rem; font-weight:700; margin-top:0.35rem;">{summary.latest_goal_score ?? 'n/a'}</div>
+              <div class="muted" style="margin-top:0.5rem;">{summary.latest_goal_score_label || 'Score a venture context to see the next action.'}</div>
+            </div>
+            <div class="panel">
+              <div class="eyebrow">Latest Saved Brief</div>
+              {#if summary.latest_ai_artifact_id}
+                <div style="margin-top:0.5rem;"><a href={`/artifacts/${summary.latest_ai_artifact_id}`}>{summary.latest_ai_artifact_title}</a></div>
+              {:else}
+                <div class="muted" style="margin-top:0.5rem;">Generate a founder brief after scoring a goal.</div>
+              {/if}
+            </div>
+          </div>
+        </SectionCard>
+      {/if}
+
       <SectionCard title="Highest Relationship Fit" subtitle="Top-ranked people for your active goal.">
         {#if scores.length}
           <table class="table">

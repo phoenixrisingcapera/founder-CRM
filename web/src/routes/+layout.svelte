@@ -9,13 +9,13 @@
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/people', label: 'People' },
     { href: '/companies', label: 'Companies' },
-    { href: '/projects', label: 'Projects' },
+    { href: '/projects', label: 'Venture Goals' },
     { href: '/dispatches', label: 'Dispatches' },
     { href: '/warm-path', label: 'Warm Path' },
     { href: '/opportunities', label: 'Opportunities' },
     { href: '/relationship-graph', label: 'Relationship Graph' },
-    { href: '/deck-assistant', label: 'Deck Assistant' },
-    { href: '/artifacts', label: 'Artifacts' },
+    { href: '/deck-assistant', label: 'AI Artifacts' },
+    { href: '/artifacts', label: 'Saved Briefs' },
     { href: '/settings', label: 'Settings' },
     { href: '/admin', label: 'Admin' }
   ];

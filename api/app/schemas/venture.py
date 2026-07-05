@@ -134,6 +134,64 @@ class ActionRecord(BaseModel):
     intro_paths_available: int = 0
 
 
+class GoalScoreCreate(BaseModel):
+    project_id: str
+    person_id: str | None = None
+    company_id: str | None = None
+    opportunity_id: str | None = None
+
+
+class GoalScoreResponse(BaseModel):
+    id: str
+    project_id: str
+    person_id: str | None = None
+    company_id: str | None = None
+    opportunity_id: str | None = None
+    project_title: str | None = None
+    person_name: str | None = None
+    company_name: str | None = None
+    opportunity_title: str | None = None
+    total_score: int
+    relationship_strength_score: int
+    warm_path_score: int
+    sector_fit_score: int
+    stage_fit_score: int
+    recency_score: int
+    confidence_score: int
+    reasons: list[str]
+    missing_data: list[str]
+    recommended_next_action: str
+    created_at: str | None = None
+
+
+class AiArtifactCreate(BaseModel):
+    goal_score_id: str
+    project_id: str
+    person_id: str | None = None
+    company_id: str | None = None
+    opportunity_id: str | None = None
+    instruction: str | None = None
+    api_key: str | None = None
+    provider: str | None = None
+
+
+class AiArtifactResponse(BaseModel):
+    id: str
+    project_id: str
+    person_id: str | None = None
+    company_id: str | None = None
+    opportunity_id: str | None = None
+    goal_score_id: str | None = None
+    artifact_type: str
+    title: str
+    content_markdown: str
+    project_title: str | None = None
+    person_name: str | None = None
+    company_name: str | None = None
+    opportunity_title: str | None = None
+    created_at: str | None = None
+
+
 class RelationshipGraphNode(BaseModel):
     id: str
     label: str

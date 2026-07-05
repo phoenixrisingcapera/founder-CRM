@@ -60,3 +60,31 @@ The active working memory for the corrected product direction is in `PRODUCT_MEM
 ## Deployment
 
 Railway deployment notes live in `RAILWAY_DEPLOY.md`.
+
+## Founder Demo Slice
+
+The current working vertical slice is:
+
+- Dashboard
+- People
+- Companies
+- Opportunities
+- Venture Goals
+- Deterministic Goal Score
+- AI Artifacts / Founder Briefs
+
+Founder flow:
+
+1. Create workspace
+2. Add person
+3. Add company
+4. Add opportunity
+5. Create venture goal
+6. Score the venture context
+7. Generate and save founder brief
+8. Review result on dashboard and artifacts pages
+
+## Public Assets
+
+- Public logo path: `web/static/logo.png`
+- In production this is served at: `/logo.png`

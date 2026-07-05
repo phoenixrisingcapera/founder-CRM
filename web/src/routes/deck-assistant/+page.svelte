@@ -1,42 +1,35 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import {
-    createGenerationRun,
-    ensureSession,
-    listGenerationRuns,
-    listArtifacts,
-    listAudiences,
-    listDecks,
-    uploadDeck
-  } from '$lib/api';
+  import { createGoalScore, ensureSession, generateAiArtifact, listAiArtifacts, listCompanies, listGoalScores, listOpportunities, listPeople, listProjects } from '$lib/api';
   import SectionCard from '$lib/components/SectionCard.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
-  import type { ArtifactRecord, AudienceProfile, DeckGenerationRunRecord, DeckRecord } from '$lib/types';
+  import type { AiArtifactRecord, CompanyRecord, GoalScoreRecord, OpportunityRecord, PersonRecord, ProjectRecord } from '$lib/types';
 
-  let audiences: AudienceProfile[] = [];
-  let decks: DeckRecord[] = [];
-  let artifacts: ArtifactRecord[] = [];
-  let runs: DeckGenerationRunRecord[] = [];
-  let selectedDeckId = '';
-  let audienceCode = 'angel';
-  let title = '';
-  let instruction = 'Improve the narrative for investor conversations and tighten weak slides.';
-  let apiKey = '';
-  let provider = 'openai';
-  let file: File | null = null;
+  let projects: ProjectRecord[] = [];
+  let people: PersonRecord[] = [];
+  let companies: CompanyRecord[] = [];
+  let opportunities: OpportunityRecord[] = [];
+  let scores: GoalScoreRecord[] = [];
+  let artifacts: AiArtifactRecord[] = [];
+  let selectedScore: GoalScoreRecord | null = null;
   let error = '';
-  let uploading = false;
+  let scoring = false;
   let generating = false;
+  let form = { project_id: '', person_id: '', company_id: '', opportunity_id: '' };
+  let artifactForm = { instruction: 'Write a concise founder brief for the next investor action.', api_key: '', provider: 'openai' };
 
   async function refresh() {
-    [audiences, decks, artifacts] = await Promise.all([listAudiences(), listDecks(), listArtifacts()]);
-    if (!selectedDeckId && decks.length) {
-      selectedDeckId = decks[0].id;
+    [projects, people, companies, opportunities, scores, artifacts] = await Promise.all([
+      listProjects(),
+      listPeople(),
+      listCompanies(),
+      listOpportunities(),
+      listGoalScores(),
+      listAiArtifacts()
+    ]);
+    if (!form.project_id && projects.length) {
+      form.project_id = projects[0].id;
     }
-    if (audiences.length && !audiences.find((item) => item.code === audienceCode)) {
-      audienceCode = audiences[0].code;
-    }
-    runs = selectedDeckId ? await listGenerationRuns(selectedDeckId) : [];
   }
 
   onMount(async () => {
@@ -44,47 +37,51 @@
       await ensureSession();
       await refresh();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Could not load deck assistant.';
+      error = err instanceof Error ? err.message : 'Could not load AI artifacts flow.';
     }
   });
 
-  async function submitUpload() {
-    if (!file || !title) {
-      error = 'Add a deck title and file first.';
-      return;
-    }
-    uploading = true;
+  async function scoreGoal() {
+    scoring = true;
     error = '';
     try {
-      const deck = await uploadDeck({ title, audience: audienceCode, file });
-      title = '';
-      file = null;
-      selectedDeckId = deck.id;
+      selectedScore = await createGoalScore({
+        project_id: form.project_id,
+        person_id: form.person_id || undefined,
+        company_id: form.company_id || undefined,
+        opportunity_id: form.opportunity_id || undefined
+      });
       await refresh();
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Could not upload deck.';
+      error = err instanceof Error ? err.message : 'Could not score this venture context.';
     } finally {
-      uploading = false;
+      scoring = false;
     }
   }
 
-  async function submitGeneration() {
-    if (!selectedDeckId) {
-      error = 'Upload or select a deck first.';
+  async function generateBrief() {
+    if (!selectedScore) {
+      error = 'Score the venture context first.';
       return;
     }
     generating = true;
     error = '';
     try {
-      await createGenerationRun(selectedDeckId, {
-        audience_code: audienceCode,
-        instruction,
-        api_key: apiKey || undefined,
-        provider
+      const artifact = await generateAiArtifact({
+        goal_score_id: selectedScore.id,
+        project_id: selectedScore.project_id,
+        person_id: selectedScore.person_id || undefined,
+        company_id: selectedScore.company_id || undefined,
+        opportunity_id: selectedScore.opportunity_id || undefined,
+        instruction: artifactForm.instruction,
+        api_key: artifactForm.api_key || undefined,
+        provider: artifactForm.provider
       });
       await refresh();
+      selectedScore = scores.find((item) => item.id === selectedScore?.id) || selectedScore;
+      window.location.href = `/artifacts/${artifact.id}`;
     } catch (err) {
-      error = err instanceof Error ? err.message : 'Could not generate artifact.';
+      error = err instanceof Error ? err.message : 'Could not generate AI artifact.';
     } finally {
       generating = false;
     }
@@ -92,92 +89,76 @@
 </script>
 
 <div class="page-grid">
-  <SectionCard title="Deck Upload" subtitle="Upload a founder deck, extract slide content, and keep it inside the workspace.">
+  <SectionCard title="AI Artifacts" subtitle="Complete the founder demo slice: score a venture context, then save a founder brief.">
     <div class="form-grid">
-      <input class="field" bind:value={title} placeholder="Deck title" />
-      <select class="select" bind:value={audienceCode}>
-        {#each audiences as audience}
-          <option value={audience.code}>{audience.label}</option>
-        {/each}
-      </select>
-      <input class="field" type="file" accept=".pdf,.txt,.md" on:change={(event) => (file = (event.currentTarget as HTMLInputElement).files?.[0] ?? null)} />
+      <select class="select" bind:value={form.project_id}><option value="">Select venture goal...</option>{#each projects as project}<option value={project.id}>{project.title}</option>{/each}</select>
+      <select class="select" bind:value={form.person_id}><option value="">Select person...</option>{#each people as person}<option value={person.id}>{person.name}</option>{/each}</select>
+      <select class="select" bind:value={form.company_id}><option value="">Select company...</option>{#each companies as company}<option value={company.id}>{company.name}</option>{/each}</select>
+      <select class="select" bind:value={form.opportunity_id}><option value="">Select opportunity...</option>{#each opportunities as opportunity}<option value={opportunity.id}>{opportunity.title}</option>{/each}</select>
     </div>
     <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center; margin-top:1rem;">
-      <div class="muted">{error}</div>
-      <button class="button" on:click={submitUpload} disabled={uploading}>{uploading ? 'Uploading...' : 'Upload deck'}</button>
+      <div class="muted">{error || 'Deterministic scoring runs first. AI brief generation is optional and falls back to a local founder brief if no API key is configured.'}</div>
+      <button class="button" on:click={scoreGoal} disabled={scoring || !form.project_id}>{scoring ? 'Scoring...' : 'Score venture context'}</button>
     </div>
   </SectionCard>
 
-  <SectionCard title="AI Deck Assistant" subtitle="Generate one investor-specific improvement artifact and save it to the workspace.">
-    <div class="form-grid">
-      <select class="select" bind:value={selectedDeckId}>
-        <option value="">Select deck</option>
-        {#each decks as deck}
-          <option value={deck.id}>{deck.title}</option>
-        {/each}
-      </select>
-      <select class="select" bind:value={audienceCode}>
-        {#each audiences as audience}
-          <option value={audience.code}>{audience.label}</option>
-        {/each}
-      </select>
-      <select class="select" bind:value={provider}>
-        <option value="openai">OpenAI</option>
-        <option value="openrouter">OpenRouter</option>
-      </select>
-      <input class="field" bind:value={apiKey} placeholder="Optional OpenAI/OpenRouter API key" />
-    </div>
-    <textarea class="textarea" bind:value={instruction} rows="4" style="margin-top:0.75rem;" placeholder="Instruction for the assistant"></textarea>
-    <div style="display:flex; justify-content:space-between; gap:1rem; align-items:center; margin-top:1rem;">
-      <div class="muted">If no system key exists, the assistant uses the key you provide for this run only.</div>
-      <button class="button" on:click={submitGeneration} disabled={generating}>{generating ? 'Generating...' : 'Generate artifact'}</button>
-    </div>
-  </SectionCard>
+  {#if selectedScore}
+    <SectionCard title="Deterministic Score" subtitle="Relationship intelligence first, before ML.">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:0.75rem; margin-bottom:1rem;">
+        <div class="panel"><div class="eyebrow">Total</div><div style="font-size:2rem; font-weight:700;">{selectedScore.total_score}</div></div>
+        <div class="panel"><div class="eyebrow">Relationship</div><div style="font-size:1.5rem; font-weight:700;">{selectedScore.relationship_strength_score}</div></div>
+        <div class="panel"><div class="eyebrow">Warm Path</div><div style="font-size:1.5rem; font-weight:700;">{selectedScore.warm_path_score}</div></div>
+        <div class="panel"><div class="eyebrow">Sector Fit</div><div style="font-size:1.5rem; font-weight:700;">{selectedScore.sector_fit_score}</div></div>
+        <div class="panel"><div class="eyebrow">Stage Fit</div><div style="font-size:1.5rem; font-weight:700;">{selectedScore.stage_fit_score}</div></div>
+        <div class="panel"><div class="eyebrow">Confidence</div><div style="font-size:1.5rem; font-weight:700;">{selectedScore.confidence_score}</div></div>
+      </div>
+      <p><strong>Recommended next action:</strong> {selectedScore.recommended_next_action}</p>
+      <p class="muted"><strong>Why this score:</strong> {selectedScore.reasons.join(', ')}</p>
+      <p class="muted"><strong>Missing data:</strong> {selectedScore.missing_data.length ? selectedScore.missing_data.join(', ') : 'None'}</p>
+
+      <div class="form-grid" style="margin-top:1rem;">
+        <select class="select" bind:value={artifactForm.provider}><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option></select>
+        <input class="field" bind:value={artifactForm.api_key} placeholder="Optional API key" />
+      </div>
+      <textarea class="textarea" bind:value={artifactForm.instruction} rows="4" style="margin-top:0.75rem;" placeholder="Founder brief instruction"></textarea>
+      <div style="display:flex; justify-content:flex-end; margin-top:1rem;"><button class="button" on:click={generateBrief} disabled={generating}>{generating ? 'Generating...' : 'Generate and save founder brief'}</button></div>
+    </SectionCard>
+  {/if}
 
   <div class="cards-grid">
-    <SectionCard title="Uploaded Decks" subtitle="Parsed slides are kept local to the founder workspace.">
-      {#if decks.length}
+    <SectionCard title="Recent Scores" subtitle="Saved deterministic scoring snapshots.">
+      {#if scores.length}
         <table class="table">
-          <thead><tr><th>Deck</th><th>Status</th><th>Audience</th><th>Slides</th></tr></thead>
+          <thead><tr><th>Goal</th><th>Person</th><th>Score</th><th>Next Action</th></tr></thead>
           <tbody>
-            {#each decks as deck}
-              <tr><td>{deck.title}</td><td>{deck.status}</td><td>{deck.audience}</td><td>{deck.slides.length}</td></tr>
+            {#each scores.slice(0, 6) as score}
+              <tr>
+                <td>{score.project_title || score.project_id}</td>
+                <td>{score.person_name || score.company_name || 'n/a'}</td>
+                <td><strong>{score.total_score}</strong></td>
+                <td class="muted">{score.recommended_next_action}</td>
+              </tr>
             {/each}
           </tbody>
         </table>
       {:else}
-        <EmptyState title="No deck uploaded" body="Upload a PDF, markdown file, or plain text deck to start the assistant flow." />
+        <EmptyState title="No scores yet" body="Create your first deterministic score from a venture goal, person, company, and opportunity." />
       {/if}
     </SectionCard>
 
-      <SectionCard title="Generated Artifacts" subtitle="Investor-specific artifacts are stored privately and export stays off in MVP.">
+    <SectionCard title="Saved Founder Briefs" subtitle="The latest AI artifacts saved from this vertical slice.">
       {#if artifacts.length}
         <table class="table">
-          <thead><tr><th>Artifact</th><th>Export</th><th>Created</th></tr></thead>
+          <thead><tr><th>Title</th><th>Goal</th><th>Created</th></tr></thead>
           <tbody>
-            {#each artifacts as artifact}
-              <tr><td>{artifact.title}</td><td>{artifact.export_enabled ? 'Enabled' : 'Disabled'}</td><td>{new Date(artifact.created_at).toLocaleString()}</td></tr>
+            {#each artifacts.slice(0, 6) as artifact}
+              <tr><td><a href={`/artifacts/${artifact.id}`}>{artifact.title}</a></td><td>{artifact.project_title || artifact.project_id}</td><td>{artifact.created_at ? new Date(artifact.created_at).toLocaleString() : 'n/a'}</td></tr>
             {/each}
           </tbody>
         </table>
       {:else}
-        <EmptyState title="No artifact yet" body="Run the assistant once to create the first deck improvement artifact." />
+        <EmptyState title="No founder brief yet" body="Generate and save the first founder brief after scoring a venture context." />
       {/if}
-      </SectionCard>
-
-      <SectionCard title="Generation Runs" subtitle="Recent AI critique runs for the selected deck.">
-        {#if runs.length}
-          <table class="table">
-            <thead><tr><th>Prompt</th><th>Provider</th><th>Status</th><th>Created</th></tr></thead>
-            <tbody>
-              {#each runs as run}
-                <tr><td><a href={`/runs/${run.id}`}>{run.prompt_summary}</a></td><td>{run.provider} {run.model}</td><td>{run.status}</td><td>{new Date(run.created_at).toLocaleString()}</td></tr>
-              {/each}
-            </tbody>
-          </table>
-        {:else}
-          <EmptyState title="No runs yet" body="Generate a critique to create the first run record for this deck." />
-        {/if}
-      </SectionCard>
-    </div>
+    </SectionCard>
   </div>
+</div>
