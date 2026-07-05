@@ -88,3 +88,5 @@ Founder flow:
 
 - Public logo path: `web/static/logo.png`
 - In production this is served at: `/logo.png`
+- Public favicon path: `web/static/favicon.svg`
+- In production this is served at: `/favicon.svg`
